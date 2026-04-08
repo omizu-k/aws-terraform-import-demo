@@ -1,52 +1,52 @@
 # Terraform Import Demo
 
-## 概要
+`terraform import` を使って、手動作成したAWSリソースをTerraformの管理下に置くデモリポジトリです。
 
-`terraform import` コマンドの実践を目的としたデモリポジトリです。
-
-AWS 上に手動で作成したリソースを Terraform の管理下に取り込む手順を、実際の環境を使って確認します。
-
-## このリポジトリで学べること
-
-- `terraform import` の基本的な使い方
-- インポート対象リソースに対応する `.tf` ファイルの書き方
-- インポート後の `terraform plan` で差分をゼロにするまでの調整プロセス
-
-## 構成リソース
-
-| リソース | 役割 |
-|---|---|
-| VPC / サブネット | ネットワーク基盤 |
-| Internet Gateway (IGW) | パブリックサブネットのインターネット接続 |
-| NAT Gateway | プライベートサブネットからの外向き通信 |
-| Application Load Balancer (ALB) | EC2 へのトラフィック振り分け |
-| EC2 インスタンス | アプリケーションサーバー（インポート対象） |
-
-## ハンズオンの流れ
-
-1. Terraform で IGW / NAT Gateway / ALB / VPC まわりを作成する
-2. EC2 インスタンスは **AWS コンソール（またはCLI）で手動作成** する
-3. `terraform import` を使って EC2 を Terraform 管理下に取り込む
-4. `terraform plan` の差分をゼロにするよう `.tf` を調整する
-
-## ディレクトリ構成
+## 構成
 
 ```
-.
-├── terraform/          # Terraform コード
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   └── terraform.tfvars.example
-└── README.md
+terraform/
+├── main.tf          # provider 設定
+├── backend.tf       # バックエンド設定
+├── vpc.tf           # VPC（自動生成を使う方法でインポート）
+└── vpc_subnet.tf    # サブネット（手動で書く方法でインポート）
 ```
 
-## 前提条件
+## 手順
 
-- Terraform v1.x
-- AWS CLI が設定済み（`aws configure` 済み）
-- 適切な IAM 権限（EC2 / ELB / VPC 操作権限）
+### 1. 初期化
 
-## 注意事項
+```bash
+cd terraform
+terraform init
+```
 
-このリポジトリは学習・デモ目的です。作成したリソースは動作確認後、必ず `terraform destroy` で削除してください（AWS の料金が発生します）。
+### 2. VPCをインポート【自動生成を使う方法】
+
+```bash
+# imports.tf に import ブロックを書いてから実行
+terraform plan "-generate-config-out=vpc.tf"
+
+# vpc.tf を整理したあと apply
+terraform apply
+
+# インポート完了後は imports.tf を削除
+rm imports.tf
+```
+
+### 3. サブネットをインポート【手動で書く方法】
+
+```bash
+# vpc_subnet.tf にスケルトンを書いてから実行
+terraform import aws_subnet.public <subnet-id>
+
+# state の内容を確認して vpc_subnet.tf を書き直す
+terraform show
+
+# 差分ゼロを確認
+terraform plan
+```
+
+## 参考
+
+詳細な手順・解説は [Qiita記事](https://qiita.com/) を参照してください。
